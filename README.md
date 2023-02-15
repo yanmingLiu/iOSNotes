@@ -156,10 +156,11 @@ void objc_removeAssociatedObjects(id object)
 
 ### 从property看安全隐患
 
+```objC
 @property(nonatomic,strong) NSString* userName;
 @property(nonatomic,assign) int age;
 
-// 对象类型，userName属于TagPointer,在栈上，不存在线程安全问题，
+// 对象类型，userName属于TagPointer,在栈上，不存在线程安全问题
 self.userName = @"xxx";
 
 // 对象类型， userName属于指针类型，执行堆，多线程下可能有线程安全问题
@@ -167,6 +168,7 @@ self.userName = @"123234dfsdfasdfasdfad";
 
 // 栈上，不存在线程安全问题
 self.age = 19;
+```
 
 - Tagged Pointer专门用来存储小的对象，例如NSNumber, NSDate, NSString。
 Tagged Pointer指针的值不再是地址了，而是真正的值。所以，实际上它不再是一个对象了，它只是一个披着对象皮的普通变量而已。所以，它的内存并不存储在堆中，也不需要malloc和free。
@@ -769,13 +771,14 @@ objc_msgSend能识别Tagged Pointer，比如NSNumber的intValue方法，直接�
 iOS平台，最高有效位是1（第64bit）
 Mac平台，最低有效位是1
 
+当字符串的长度为**10个**以内时，字符串的类型都是NSTaggedPointerString类型，当超过10个时，字符串的类型才是__NSCFString
+```objC
 // 对象类型，userName属于TagPointer,在栈上，不存在线程安全问题
 self.userName = @"xxx";
 
 // 对象类型， userName属于指针类型，执行堆，多线程下可能有线程安全问题
 self.userName = @"123234dfsdfasdfasdfad";
-
-当字符串的长度为**10个**以内时，字符串的类型都是NSTaggedPointerString类型，当超过10个时，字符串的类型才是__NSCFString
+```
 
 ### OC对象的内存管理
 在iOS中，使用引用计数来管理OC对象的内存
