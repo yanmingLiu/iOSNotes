@@ -1070,6 +1070,6 @@ Swift尽量使用struct
 xcconfig也叫作 Build configuration file（构建配置⽂件），我们可以使⽤它来为 Project 或 Target 定义⼀组 Build Setting。由于它是⼀个纯⽂本⽂件，我们可以使⽤ Xcode 以外的其他⽂本编辑器来修改，⽽且可以保 存到 Git 进⾏统⼀管理。通过 Build Configuration、 Xcode Scheme 以及 xcconfig 配置⽂件来统⼀项⽬的构建配置，从⽽搭建出多个不同环境。
 
 3. 代码管理
-遵循swift-style-guide代码风格。
-在提交代码前，必须使用SwiftFormat对代码进行格式化。
-SwiftLint
+    - 遵循swift-style-guide代码风格。
+    - 在提交代码前，必须使用SwiftFormat对代码进行格式化。
+    - SwiftLint
