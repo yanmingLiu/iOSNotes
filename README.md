@@ -94,7 +94,7 @@ graph TB
     B[按照getKey key isKey _key顺序查找方法] --> C{找到了?}
     C{找到了?} -- 找到了 --> e(调用方法)
     C{找到了?} -- 没有找到 --> F[查看accessInstanceVariablesDirectly方法的返回值] --> G{默认YES}
-    G{默认YES} -- NO -->  H(调用valueForUndefinedKey:并抛出异常NSUnknownKeyException没有找到成员变量)
+    G{默认YES} -- NO -->  H(调用valueForUndefinedKey:并抛出异常<br>NSUnknownKeyException<br>没有找到成员变量)
     G{默认YES} -- YES --> K[按照_key _isKey key isKey顺序查找成员变量]
     K[按照_key _isKey key isKey顺序查找成员变量] --> Z(直接取值)
 ```
@@ -161,7 +161,8 @@ void objc_removeAssociatedObjects(id object)
 
 // 对象类型，userName属于TagPointer,在栈上，不存在线程安全问题，
 self.userName = @"xxx";
-// 对象类型， userName属于指针类型，执行堆，多线程下可能有线程安全问题 
+
+// 对象类型， userName属于指针类型，执行堆，多线程下可能有线程安全问题
 self.userName = @"123234dfsdfasdfasdfad";
 
 // 栈上，不存在线程安全问题
@@ -341,9 +342,9 @@ testButton.backgroundColor = [UIColor redColor];
 首先, block是一个对象, 所以block理论上是可以retain/release的. 
 但是block在创建的时候它的内存是默认是分配在栈(stack)上, 而不是堆(heap)上的. 
 所以它的作用域仅限创建时候的当前上下文(函数, 方法...), 当你在该作用域外调用该block时, 程序就会崩溃.
- 1.一般情况下你不需要自行调用copy或者retain一个block. 只有当你需要在block定义域以外的地方使用时才需要copy. Copy将block从内存栈区移到堆区.
-2.其实block使用copy是MRC留下来的, 在MRC下, 如上述, 在方法中的block创建在栈区, 使用copy就能把他放到堆区, 这样在作用域外调用该block程序就不会崩溃.
-3.但在ARC下, 使用copy与strong其实都一样, 因为block的retain就是用copy来实现的。
+1. 一般情况下你不需要自行调用copy或者retain一个block. 只有当你需要在block定义域以外的地方使用时才需要copy. Copy将block从内存栈区移到堆区.
+2. 其实block使用copy是MRC留下来的, 在MRC下, 如上述, 在方法中的block创建在栈区, 使用copy就能把他放到堆区, 这样在作用域外调用该block程序就不会崩溃.
+3. 但在ARC下, 使用copy与strong其实都一样, 因为block的retain就是用copy来实现的。
 
 
 
@@ -422,15 +423,25 @@ RunLoop主要负责以下几个方面：
 
 ### RunLoop的运行逻辑？
 01、通知Observers：进入Loop
+
 02、通知Observers：即将处理Timers
+
 03、通知Observers：即将处理Sources
+
 04、处理Blocks
+
 05、处理Source0（可能会再次处理Blocks）
+
 06、如果存在Source1，就跳转到第8步
+
 07、通知Observers：开始休眠（等待消息唤醒）
+
 08、通知Observers：结束休眠（被某个消息唤醒）：1> 处理Timer，2> 处理GCD Async To Main Queue，3> 处理Source1
+
 09、处理Blocks
+
 10、根据前面的执行结果，决定如何操作：01> 回到第02步， 02> 退出Loop
+
 11、通知Observers：退出Loop
 
 ### RunLoop在实际开中的应用？
@@ -483,17 +494,18 @@ RunLoop主要负责以下几个方面：
 
 ### iOS线程同步方案性能比较
 性能从高到低排序：
-os_unfair_lock
-OSSpinLock
-dispatch_semaphore
-pthread_mutex
-dispatch_queue(DISPATCH_QUEUE_SERIAL)
-NSLock
-NSCondition
-pthread_mutex(recursive)
-NSRecursiveLock
-NSConditionLock
-@synchronized
+- os_unfair_lock
+- OSSpinLock
+- dispatch_semaphore
+- pthread_mutex
+- dispatch_queue(DISPATCH_QUEUE_SERIAL)
+- NSLock
+- NSCondition
+- pthread_mutex(recursive)
+- NSRecursiveLock
+- NSConditionLock
+- @synchronized
+  
 
 ### 自旋锁、互斥锁比较
 在iOS中，自旋锁（Spin Lock）和互斥锁（Mutex Lock）是常用的两种线程锁。它们的主要区别在于：
@@ -703,6 +715,7 @@ NSOperationQueue 是基于 GCD 构建的高层抽象，本质上仍然使用了 
 @end
 
 ```
+
 在上面的代码中，addObject:、removeObjectAtIndex: 和 objectAtIndex: 方法都使用了 dispatch_semaphore_wait 和 dispatch_semaphore_signal 来保证在执行这些操作时，其他线程无法对数组进行读写操作。使用信号量时，每次读写操作都需要获取信号量，以阻止其他线程进行操作。在操作完成后，需要释放信号量，允许其他线程进行读写操作。这样可以避免读写冲突，保证线程安全。
 
 
@@ -756,9 +769,10 @@ objc_msgSend能识别Tagged Pointer，比如NSNumber的intValue方法，直接�
 iOS平台，最高有效位是1（第64bit）
 Mac平台，最低有效位是1
 
-// 对象类型，userName属于TagPointer,在栈上，不存在线程安全问题，
+// 对象类型，userName属于TagPointer,在栈上，不存在线程安全问题
 self.userName = @"xxx";
-// 对象类型， userName属于指针类型，执行堆，多线程下可能有线程安全问题 
+
+// 对象类型， userName属于指针类型，执行堆，多线程下可能有线程安全问题
 self.userName = @"123234dfsdfasdfasdfad";
 
 当字符串的长度为**10个**以内时，字符串的类型都是NSTaggedPointerString类型，当超过10个时，字符串的类型才是__NSCFString
@@ -887,11 +901,12 @@ void objc_autoreleasePoolPop(void *ctxt) {
 
 ### Runloop和Autorelease
 
-iOS在主线程的Runloop中注册了2个Observer
-第1个Observer监听了kCFRunLoopEntry事件，会调用objc_autoreleasePoolPush()
-第2个Observer
-监听了kCFRunLoopBeforeWaiting事件，会调用objc_autoreleasePoolPop()、objc_autoreleasePoolPush()
-监听了kCFRunLoopBeforeExit事件，会调用objc_autoreleasePoolPop()
+iOS在主线程的Runloop中注册了2个Observer:
+
+- 第1个Observer 监听了kCFRunLoopEntry事件，会调用objc_autoreleasePoolPush()
+- 第2个Observer 
+  - 监听了kCFRunLoopBeforeWaiting事件，会调用objc_autoreleasePoolPop()、objc_autoreleasePoolPush()
+  - 监听了kCFRunLoopBeforeExit事件，会调用objc_autoreleasePoolPop()
 
 
 ## 6.性能优化
@@ -1005,17 +1020,17 @@ Swift尽量使用struct
 按需加载
 
 ### 安装包瘦身
-- 资源（图片、音频、视频等）
-采取无损压缩
-去除没有用到的资源： https://github.com/tinymind/LSUnusedResources
-大资源图片、表情、特效、音频、视频等资源通过下载后使用
-使用Iconfont替换图片图标
+- 资源（图片、音频、视频等）:
+    - 采取无损压缩
+    - 去除没有用到的资源： https://github.com/tinymind/LSUnusedResources
+    - 大资源图片、表情、特效、音频、视频等资源通过下载后使用
+    - 使用Iconfont替换图片图标
 
 - 可执行文件瘦身
-编译器优化
-Strip Linked Product、Make Strings Read-Only、Symbols Hidden by Default设置为YES
-去掉异常支持，Enable C++ Exceptions、Enable Objective-C Exceptions设置为NO， Other C Flags添加-fno-exceptions
-利用AppCode或者[fui](https://github.com/dblock/fui)检测未使用的代码
+    - 编译器优化:
+        - Strip Linked Product、Make Strings Read-Only、Symbols Hidden by Default设置为YES
+        - 去掉异常支持，Enable C++ Exceptions、Enable Objective-C Exceptions设置为NO， Other C Flags添加-fno-exceptions
+        - 利用AppCode或者[fui](https://github.com/dblock/fui)检测未使用的代码
 
 
 ## 7. 设计模式、架构
