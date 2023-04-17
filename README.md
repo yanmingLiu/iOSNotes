@@ -73,6 +73,10 @@
   - [TCP 三次握手](#tcp-三次握手)
   - [TCP 四次挥手](#tcp-四次挥手)
   - [HTTPS 工作流程](#https-工作流程)
+- [WebSocket](#websocket)
+  - [WebSocket 底层原理](#websocket-底层原理)
+  - [iOS 中 WebSocket 相关框架](#ios-中-websocket-相关框架)
+- [WebRTC](#webrtc)
 
 ---
 
@@ -1207,6 +1211,14 @@ TCP 是一种面向连接的协议，提供了可靠的数据传输，可以确�
 UDP 是一种无连接的协议，不提供可靠的数据传输保证，也不保证数据的顺序和完整性。它非常简单、快速，适合对实时性要求较高的应用。UDP 的一个常见用途是进行实时音视频传输，例如网络电话和视频会议等。
 
 ### TCP 三次握手
+在TCP层，有个FLAGS字段，这个字段有以下几个标识：SYN, FIN, ACK, PSH, RST, URG.其中，对于我们日常的分析有用的就是前面的五个字段。
+
+SYN: 同步序列编号(Synchronize Sequence Numbers)  
+ACK: 确认编号(Acknowledgement Number)  
+RST: 复位标志，复位标志有效。用于复位相应的TCP连接  
+URG: 紧急标志  
+PSH：推标志。该标志置位时，接收端不将该数据进行队列处理，而是尽可能快将数据转由应用处理。
+FIN：结束标志。带有该标志置位的数据包用来结束一个TCP回话，但对应端口仍处于开放状态，准备接
 
 1. 客户端发送 SYN 报文：客户端向服务器发送一个 SYN 报文，其中包含随机生成的一个初始序列号 x，表示客户端准备连接服务器的一个端口。
 
@@ -1247,3 +1259,24 @@ UDP 是一种无连接的协议，不提供可靠的数据传输保证，也不�
 6. 通信加密：
    - 客户端和服务端都可以使用**共享密钥**，通过hash算法和随机数1、随机数2、随机数3计算出会话密钥（key）。
    - 一旦服务器和浏览器都拥有共享密钥，它们将使用该密钥加密和解密在客户端和服务器之间传输的数据。前面的过程三非对称加密、后面的过程就可以使用“对称密钥加密”的技术来完成。
+
+
+## WebSocket
+
+### WebSocket 底层原理
+WebSocket是一个网络上的应用层协议，它依赖于HTTP协议的第一次握手，握手成功后，数据就通过TCP/IP协议传输了。
+
+WebSocket分为握手阶段和数据传输阶段，即进行了HTTP一次握手 + 双工的TCP连接。
+
+### iOS 中 WebSocket 相关框架
+
+[Starscream](https://github.com/daltoniam/Starscream) 是一个符合WebSocket（RFC 6455）的Swift库。
+
+[SwiftWebSocket](https://github.com/tidwall/SwiftWebSocket) 适用于iOS和Mac OSX的符合WebSocket（RFC 6455）标准的客户端库。
+
+[SocketRocket](https://github.com/facebookincubator/SocketRocket) 适用于 iOS、macOS 和 tvOS 的符合 WebSocket (RFC 6455) 的Objective-C库。
+
+[CocoaAsyncSocket](https://github.com/robbiehanson/CocoaAsyncSocket)CocoaAsyncSocket为macOS、iOS和tvOS提供了易于使用且功能强大的异步套接字库。
+
+## WebRTC
+[WebRTC](https://webrtcforthecurious.com/zh/docs/01-what-why-and-how/)
