@@ -4,8 +4,10 @@
   - [KVC的赋值和取值过程是怎样的？原理是什么？](#kvc的赋值和取值过程是怎样的原理是什么)
   - [Category的使用场合是什么？Category的实现原理？](#category的使用场合是什么category的实现原理)
   - [Category和Class Extension的区别是什么？](#category和class-extension的区别是什么)
+  - [Category中有load方法吗？load方法是什么时候调用的？load 方法能继承吗？](#category中有load方法吗load方法是什么时候调用的load-方法能继承吗)
   - [Category能否添加成员变量？如果可以，如何给Category添加成员变量？](#category能否添加成员变量如果可以如何给category添加成员变量)
   - [load、initialize方法的区别什么？它们在category中的调用的顺序？以及出现继承时他们之间的调用过程？](#loadinitialize方法的区别什么它们在category中的调用的顺序以及出现继承时他们之间的调用过程)
+  - [讲一下atomic的实现机制；为什么不能保证绝对的线程安全（最好可以结合场景来说）？](#讲一下atomic的实现机制为什么不能保证绝对的线程安全最好可以结合场景来说)
   - [从property看安全隐患](#从property看安全隐患)
   - [OC对象的分类](#oc对象的分类)
   - [isa、superclass](#isasuperclass)
@@ -127,7 +129,7 @@ graph TB
 * Class Extension在编译的时候，它的数据就已经包含在类信息中
 * Category是在运行时，才会将数据合并到类信息中
 
-###6. Category中有load方法吗？load方法是什么时候调用的？load 方法能继承吗？
+### Category中有load方法吗？load方法是什么时候调用的？load 方法能继承吗？
 * 有load方法
 * load方法在runtime加载类、分类的时候调用
 * load方法可以继承，但是一般情况下不会主动去调用load方法，都是让系统自动调用
@@ -137,9 +139,7 @@ graph TB
 不能直接给Category添加成员变量，但是可以间接实现Category有成员变量的效果。
 
 添加关联对象
-void objc_setAssociatedObject(id object, const void * key, 
-
-                                id value, objc_AssociationPolicy policy)
+void objc_setAssociatedObject(id object, const void * key, id value, objc_AssociationPolicy policy)
 
 获得关联对象
 id objc_getAssociatedObject(id object, const void * key)
@@ -165,7 +165,7 @@ void objc_removeAssociatedObjects(id object)
 * 子类和父类同时实现initialize，父类的先被调用。
 * 本类与category同时实现initialize，category会覆盖本类的方法，只调用category的。
 
-###讲一下atomic的实现机制；为什么不能保证绝对的线程安全（最好可以结合场景来说）？
+### 讲一下atomic的实现机制；为什么不能保证绝对的线程安全（最好可以结合场景来说）？
 
 * atomic的实现机制:
 * atomic是property的修饰词之一，表示是原子性的，编译器会自动生成getter/setter方法，最终会调用objc_getProperty和objc_setProperty方法来进行存取属性。这两个方法内部使用os_unfair_lock(os_unfair_lock是在iOS10之后为了替代自旋锁OSSpinLock而诞生的，主要是通过线程休眠的方式来继续加锁，而不是一个“忙等”的锁)来进行加锁，来保证读写的原子性。锁都在PropertyLocks中保存着，在用之前，会把锁都初始化好，在需要用到时，用对象的地址加上成员变量的偏移量为key，去PropertyLocks中去取。因此存取时用的是同一个锁，所以atomic能保证属性的存取时是线程安全的。注：由于锁是有限的，不用对象，不同属性的读取用的也可能是同一个锁.
@@ -257,17 +257,17 @@ class对象在内存中存储的信息主要包括：
 | __NSMallocBlock__ | 堆| 引用计数增加 |
 
 在ARC环境下，编译器会根据情况自动将栈上的block复制到堆上，比如以下情况：
-    - block作为函数返回值时
-    - 将block赋值给__strong指针时
-    - block作为Cocoa API中方法名含有usingBlock的方法参数时
-    - block作为GCD API的方法参数时
+  - block作为函数返回值时
+  - 将block赋值给__strong指针时
+  - block作为Cocoa API中方法名含有usingBlock的方法参数时
+  - block作为GCD API的方法参数时
 
-MRC下block属性的建议写法
+MRC下block属性的建议写法  
 @property (copy, nonatomic) void (^block)(void); 
 
-ARC下block属性的建议写法
-@property (strong, nonatomic) void (^block)(void); 
-@property (copy, nonatomic) void (^block)(void); 
+ARC下block属性的建议写法  
+@property (strong, nonatomic) void (^block)(void);  
+@property (copy, nonatomic) void (^block)(void);  
 
 * __block修饰符
     - __block可以用于解决block内部无法修改auto变量值的问题
@@ -292,10 +292,10 @@ __forwarding指针这里的作用就是针对堆的Block，把原来__forwarding
 
 在ARC环境下，id类型和对象类型和C语言其他类型不同，类型前必须加上所有权的修饰符。
 所有权修饰符总共有4种：
-1.__strong修饰符 
-2.__weak修饰符 
-3.__unsafe_unretained修饰符 
-4.__autoreleasing修饰符
+  1. __strong修饰符 
+  2. __weak修饰符 
+  3. __unsafe_unretained修饰符 
+  4. __autoreleasing修饰符
 
 * _strong的实现原理
 在ARC中原本对象生成之后是要注册到autoreleasepool中，但是调用了objc_autoreleasedReturnValue 之后，紧接着调用了 objc_retainAutoreleasedReturnValue，objc_autoreleasedReturnValue函数会去检查该函数方法或者函数调用方的执行命令列表，如果里面有objc_retainAutoreleasedReturnValue()方法，那么该对象就直接返回给方法或者函数的调用方。达到了即使对象不注册到autoreleasepool中，也可以返回拿到相应的对象。
