@@ -14,7 +14,7 @@
   - [Block的本质](#block的本质)
   - [\_\_weak、\_\_strong的实现原理](#__weak__strong的实现原理)
   - [为什么iOS的Masonry中的self不会循环引用?](#为什么ios的masonry中的self不会循环引用)
-  - [iOS 闭包中的\[weak self\]在什么情况下需要使用，什么情况下可以不加?](#ios-闭包中的weak-self在什么情况下需要使用什么情况下可以不加)
+  - [iOS 闭包中的weak self在什么情况下需要使用，什么情况下可以不加?](#ios-闭包中的weak-self在什么情况下需要使用什么情况下可以不加)
   - [为什么 block 里面还需要写一个 strong self，如果不写会怎么样？](#为什么-block-里面还需要写一个-strong-self如果不写会怎么样)
   - [iOS block 为什么用copy修饰](#ios-block-为什么用copy修饰)
 - [2. Runtime](#2-runtime)
@@ -44,6 +44,8 @@
   - [引用计数的存储](#引用计数的存储)
   - [dealloc](#dealloc)
   - [自动释放池](#自动释放池)
+  - [自动释放池实现原理](#自动释放池实现原理)
+  - [写时复制](#写时复制)
   - [Runloop和Autorelease](#runloop和autorelease)
 - [6. 性能优化](#6-性能优化)
   - [卡顿优化 - CPU](#卡顿优化---cpu)
@@ -375,7 +377,7 @@ testButton.backgroundColor = [UIColor redColor];
 
 ```
 
-### iOS 闭包中的[weak self]在什么情况下需要使用，什么情况下可以不加?
+### iOS 闭包中的weak self在什么情况下需要使用，什么情况下可以不加?
 
 只有当block直接或间接的被self持有时，才需要weak self。
 
@@ -502,6 +504,93 @@ RunLoop主要负责以下几个方面：
 * 解决NSTimer在滑动时停止工作的问题
 * 监控应用卡顿
 * 性能优化
+
+
+在iOS开发中，我们可以使用NSRunLoop来监听卡顿事件，并且可以通过NSRunLoop让线程保持常驻状态。
+
+下面是一些示例代码，展示如何使用NSRunLoop：
+
+1. 监听卡顿
+
+```
+CFRunLoopObserverRef observer = CFRunLoopObserverCreateWithHandler(kCFAllocatorDefault, kCFRunLoopAllActivities, true, 0, ^(CFRunLoopObserverRef observer, CFRunLoopActivity activity) {
+    if (activity == kCFRunLoopAfterWaiting) {
+        NSTimeInterval currentTimestamp = [[NSDate date] timeIntervalSince1970];
+        NSTimeInterval interval = currentTimestamp - lastTimestamp;
+        if (interval > threshold) {
+            NSLog(@"App has been blocked for %f seconds", interval);
+        }
+        lastTimestamp = currentTimestamp;
+    }
+});
+
+CFRunLoopAddObserver(CFRunLoopGetMain(), observer, kCFRunLoopCommonModes);
+
+CFRelease(observer);
+```
+
+在此示例中，我使用CFRunLoopObserver来监视主线程的运行循环，并在每次调用CFRunLoopRunInMode函数结束后检查时间间隔是否超过了阈值。如果超过了阈值，则说明应用已经被卡住了，我们可以在这里执行一些错误处理操作。需要注意的是，这个方法只能检测到主线程的卡顿，如果想要检测其他线程的卡顿，可以使用类似的方式来创建和添加CFRunLoopObserver。
+
+2. 让线程常驻
+
+```
+- (void)run {
+    NSRunLoop *runLoop = [NSRunLoop currentRunLoop];
+    [runLoop addPort:[NSMachPort port] forMode:NSDefaultRunLoopMode];
+    [runLoop run];
+}
+
+//创建并启动线程
+NSThread *thread = [[NSThread alloc] initWithTarget:self selector:@selector(run) object:nil];
+[thread start];
+
+//在主线程中发送消息给子线程
+[[self class] performSelector:@selector(doSomething) onThread:thread withObject:nil waitUntilDone:NO modes:@[NSDefaultRunLoopMode]];
+```
+
+在此示例中，我创建了一个新的线程，并使用NSRunLoop让它保持常驻状态。在run方法中，我获取当前线程的NSRunLoop对象，并向其添加一个NSMachPort端口，以便RunLoop能够不断地运行下去。
+
+在主线程中，我们可以使用performSelector:onThread:withObject:waitUntilDone:modes:方法向子线程发送消息，并指定需要等待的RunLoop模式为NSDefaultRunLoopMode。这将确保子线程的RunLoop在接收到消息后能够正确地处于活跃状态，并处理消息。
+
+需要注意的是，在使用NSRunLoop时，我们需要小心防止出现死锁或者循环引用的问题，特别是在多线程环境下。
+
+在 iOS 开发中，可以使用 NSRunLoop 来监听子线程的卡顿。具体方法如下：
+
+1. 在子线程中创建一个 timer，并将其加入到当前线程的 RunLoop 中：
+
+```
+NSTimer *timer = [NSTimer timerWithTimeInterval:0.1
+                                         target:self
+                                       selector:@selector(timerMethod)
+                                       userInfo:nil
+                                        repeats:YES];
+[[NSRunLoop currentRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];
+```
+
+2. 定义 `timerMethod` 方法，在该方法中记录当前时间和上一次执行该方法的时间，并比较它们的差值：
+
+```
+- (void)timerMethod {
+    static CFAbsoluteTime lastTime = 0;
+    CFAbsoluteTime currentTime = CFAbsoluteTimeGetCurrent();
+    
+    if ((currentTime - lastTime) > 0.1) {
+        // 子线程卡顿了，打印日志或进行其他处理
+        NSLog(@"子线程卡顿了");
+    }
+    
+    lastTime = currentTime;
+}
+```
+
+3. 当子线程中的任务执行完毕后，要从 RunLoop 中移除该 timer：
+
+```
+[timer invalidate];
+timer = nil;
+```
+
+这样就可以通过 NSRunLoop 监听子线程的卡顿情况了。
 
 ## 4. 多线程
 
@@ -888,6 +977,7 @@ NSAutoreleasePool的实现原理是利用了Objective-C的消息传递机制。�
 至于何时给对象发送release消息，一般来说，当我们手动创建了一个对象并持有它时，就需要在不再需要使用该对象时，通过调用其release方法来释放内存。例如，当我们使用alloc、retain、copy等方法创建了一个新对象时，就需要在不再需要使用该对象时手动调用release方法来释放内存。而如果是使用autoreleased对象，则可以不需要手动管理其内存，系统会自动将其添加到当前的autorelease pool中，并在池被销毁时自动释放掉。
 
 
+### 自动释放池实现原理
 
 自动释放池是由 AutoreleasePoolPage 以双向链表的方式实现的
 当对象调用 autorelease 方法时，会将对象加入 AutoreleasePoolPage 的栈中
@@ -982,6 +1072,16 @@ void objc_autoreleasePoolPop(void *ctxt) {
                     └── id *add(id obj)
 ```
 
+### 写时复制
+
+写时复制（Copy On Write）是一种常见的优化技术，它可以在减少内存使用和提高程序性能之间进行平衡。它的核心思想是，在需要修改共享数据时，不直接修改原始数据，而是先创建原始数据的一个副本，并在副本上执行修改操作。这样，对于未被修改的数据，多个线程或对象可以继续共享使用，而只有在修改的时候才会对数据进行复制。
+
+写时复制通常用于需要频繁读取、较少修改的数据结构中，如字符串、数组、字典等。在实现过程中，我们需要保证数据结构的不可变特性，以便在不需要修改数据时能够直接共享使用。当需要修改数据时，我们则会创建一个新的数据副本，并对副本进行修改操作，以避免对原始数据的修改影响到其他线程或对象。
+
+在具体实现时，我们可以使用类似于引用计数的技术来跟踪每个副本的使用情况，以便在不需要使用副本时能够及时释放对应的内存空间。此外，我们还需要考虑线程安全问题，以确保在多线程环境下能够正确地处理数据并避免出现竞态条件等问题。
+
+总之，写时复制是一种优秀的优化技术，它可以在保证数据一致性的同时，减少内存使用和提高程序性能。在实际开发中，我们可以根据具体情况选择合适的数据结构和实现方式来应用写时复制技术，以达到最佳的效果。
+
 ### Runloop和Autorelease
 
 iOS在主线程的Runloop中注册了2个Observer:
@@ -1021,13 +1121,31 @@ Off-Screen Rendering：离屏渲染，在当前屏幕缓冲区以外新开辟一
 需要创建新的缓冲区
 离屏渲染的整个过程，需要多次切换上下文环境，先是从当前屏幕（On-Screen）切换到离屏（Off-Screen）；等到离屏渲染结束以后，将离屏缓冲区的渲染结果显示到屏幕上，又需要将上下文环境从离屏切换到当前屏幕
 
-哪些操作会触发离屏渲染？
-* 光栅化，layer.shouldRasterize = YES
-* 遮罩，layer.mask
-* 圆角，同时设置layer.masksToBounds = YES、layer.cornerRadius大于0
-考虑通过CoreGraphics绘制裁剪圆角，或者叫美工提供圆角图片
-* 阴影，layer.shadowXXX，如果设置了layer.shadowPath就不会产生离屏渲染
+iOS 中的离屏渲染（Offscreen Rendering）是指在当前屏幕之外进行的渲染操作。在 iOS 中，每个 UIView 都有一个 layer 属性，这个 layer 会在屏幕上对应一个 CALayer。当使用了一些复杂的图形效果或者特殊的图层属性时，这些操作可能会触发离屏渲染。
 
+离屏渲染需要将当前屏幕之外的图层绘制到缓冲区中，然后再将缓冲区中的内容传输到 GPU 硬件进行合成，最后才能呈现在屏幕上。由于离屏渲染需要额外的内存和处理器资源，所以过多的离屏渲染会导致应用程序性能下降，甚至卡顿现象。
+
+常见的会触发离屏渲染的操作包括：
+
+1. 圆角、阴影等复杂的图形效果；
+
+2. 使用 masksToBounds、shadow* 和 shouldRasterize 等属性对图层进行裁剪或加速；
+
+3. 给视图添加模糊效果，如毛玻璃效果；
+
+4. 使用 CAShapeLayer 和 CAGradientLayer 等特殊的图层。
+
+为避免过多的离屏渲染，我们可以采取以下优化措施：
+
+1. 尽量避免使用复杂的图形效果和特殊的图层属性；
+
+2. 使用 DrawRect 代替 CALayer 的 maskToBounds、shadow* 和 shouldRasterize 等属性；
+
+3. 避免在视图上添加过多的子视图，可以考虑使用绘制方法代替；
+
+4. 对于需要模糊效果的视图，可以采用 UIVisualEffectView 来实现。
+
+总之，在 iOS 应用程序开发中，离屏渲染是一个需要尽可能避免的性能问题。通过优化视图结构和代码实现，我们可以减少这种操作，从而提高应用程序的性能和稳定性。
 ### 卡顿检测
 
 平时所说的“卡顿”主要是因为在主线程执行了比较耗时的操作
