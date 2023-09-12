@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<playground version='6.0' target-platform='ios' display-mode='raw'>
+    <pages>
+        <page name='GCD'/>
+        <page name='Operation'/>
+        <page name='单利'/>
+        <page name='基础语法'/>
+        <page name='数组'/>
+        <page name='Date'/>
+        <page name='字符串格式化'/>
+        <page name='字典'/>
+        <page name='tmp'/>
+        <page name='枚举'/>
+        <page name='数学计算'/>
+        <page name='While'/>
+        <page name='函数'/>
+        <page name='Class'/>
+        <page name='Struct'/>
+        <page name='协议和扩展'/>
+        <page name='错误处理'/>
+        <page name='callAsFunction'/>
+        <page name='MVC'/>
+        <page name='Set'/>
+        <page name='OrderedSet'/>
+        <page name='类和结构体'/>
+        <page name='willSet'/>
+        <page name='序列sequence'/>
+        <page name='集合类型协议'/>
+        <page name='面试题'/>
+        <page name='泛型'/>
+        <page name='算法'/>
+        <page name='Hashable 和 Equatable'/>
+        <page name='Encodable'/>
+        <page name='设计模式'/>
+        <page name='Codable+'/>
+    </pages>
+</playground>
